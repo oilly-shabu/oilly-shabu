@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ออยลี่ชาบู่ - 关东煮点餐</title>
+<title>ออยลี่ชาบู่ - โตเกียวโอเด้ง</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif}
 body{background:#f6f6f6;padding-bottom:100px}
@@ -144,6 +144,11 @@ body.th [data-th]{display:inline}
 </div>
 
 <script>
+// ==============================================
+// ✅ 在这里粘贴你的 Google 表格链接
+const SHEET_URL = "https://docs.google.com/spreadsheets/d/1Gr91A7-Y2DDgK2zRDlkmUGDR3sG7vF8HMwLOPMZX5NY/edit?usp=sharing";
+// ==============================================
+
 const ADMIN_PASSWORD = "510303";
 const foods = [
   {type:"关东煮",name:"萝卜",th:"รากผักไชเท้า",price:10},
@@ -175,7 +180,7 @@ let soup = -1;
 
 function toggleLang(){document.body.classList.toggle("th")}
 function generateNo(){return "OD"+Math.floor(100000+Math.random()*900000);}
-function renderList(){
+function renderList(){/* 自动渲染菜单 */
   let html="";
   foods.filter(f=>f.type==tab).forEach(f=>{
     let n=cart[f.name]||0;
@@ -195,7 +200,7 @@ function openPay(){if(soup==-1){alert("กรุณาเลือกซุป /
 function closePay(){document.getElementById("payMask").style.display="none";}
 function downloadQR(){let a=document.createElement("a");a.href=document.getElementById("qrImg").src;a.download="PromptPay.png";a.click();}
 
-function confirmOrder(){
+async function confirmOrder(){
   closePay();
   let no=generateNo();
   let total=document.getElementById("total").innerText*1;
@@ -206,9 +211,7 @@ function confirmOrder(){
   let time=new Date().toLocaleString();
   let date=new Date().toLocaleDateString();
 
-  let orders=JSON.parse(localStorage.getItem("orders")||"[]");
-  orders.unshift({no,table,total,items:items.join(" "),soup:soups[soup],time,date,paid:false});
-  localStorage.setItem("orders",JSON.stringify(orders));
+  await fetch(SHEET_URL.replace("/edit","/gviz/tq?tqx=out:csv&tq="+encodeURIComponent(`INSERT INTO A,B,C,D,E,F,G,H VALUES ('${no}','${table}','${total}','${items.join(" ")}','${soups[soup]}','${time}','${date}','false')`)));
 
   document.getElementById("okOrderNo").innerText=no;
   document.getElementById("okMask").style.display="flex";
@@ -221,36 +224,28 @@ function openPwd(){document.getElementById("pwdMask").style.display="flex";}
 function closePwd(){document.getElementById("pwdMask").style.display="none";}
 function loginAdmin(){if(document.getElementById("pwd").value==ADMIN_PASSWORD){closePwd();openAdmin();}else{alert("รหัสผิด / 密码错误");}}
 
-function refreshAdmin(){
-  let orders=JSON.parse(localStorage.getItem("orders")||"[]");
+async function refreshAdmin(){
+  let res=await fetch(SHEET_URL.replace("/edit","/gviz/tq?tqx=out:csv"));
+  let text=await res.text();
+  let rows=text.split("\n").slice(1).filter(r=>r.trim());
   let today=new Date().toLocaleDateString();
   let todaySum=0;let todayCount=0;
-  orders.forEach(o=>{if(o.date==today)todayCount++,todaySum+=o.total*1;});
+  rows.forEach(r=>{let d=r.split(",")[6];if(d==today)todayCount++,todaySum+=r.split(",")[2]*1;});
   document.getElementById("todayOrder").innerText=todayCount;
   document.getElementById("todayMoney").innerText=todaySum;
-  document.getElementById("totalOrder").innerText=orders.length;
+  document.getElementById("totalOrder").innerText=rows.length;
   let html="";
-  orders.forEach((o,i)=>{
-    html+=`<div class="orderItem">
-      <strong>${o.no}</strong><br>${o.table} | ${o.soup}<br>${o.items}<br>${o.total} ฿ | ${o.time}
-      <button class="paidBtn ${o.paid?'paid':''}" onclick="togglePaid(${i})">
-        ${o.paid?(document.body.classList.contains("th")?"ชำระแล้ว":"已收款"):(document.body.classList.contains("th")?"ยังไม่ชำระ":"未收款")}
-      </button>
-    </div>`;
+  rows.forEach(r=>{
+    let a=r.split(",");
+    html+=`<div class="orderItem"><strong>${a[0]}</strong><br>${a[1]} | ${a[4]}<br>${a[3]}<br>${a[2]} ฿ | ${a[5]}</div>`;
   });
   document.getElementById("orderList").innerHTML=html;
 }
-function togglePaid(i){
-  let orders=JSON.parse(localStorage.getItem("orders")||"[]");
-  orders[i].paid=!orders[i].paid;
-  localStorage.setItem("orders",JSON.stringify(orders));
-  refreshAdmin();
-}
+
 function openAdmin(){document.getElementById("adminPage").style.display="block";refreshAdmin();}
 function closeAdmin(){document.getElementById("adminPage").style.display="none";}
 
 renderList();
-document.getElementById("orderNo").innerText=generateNo();
 </script>
 </body>
 </html>
