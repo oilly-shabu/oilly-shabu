@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ออยลี่ชาบู่ - โตเกียวโอเด้ง</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif}
+body{background:#f6f6f6;padding-bottom:100px}
+.head{display:flex;justify-content:space-between;padding:10px;background:white}
+.langBtn,.adminBtn{padding:8px 12px;background:#ff6b35;color:white;border:none;border-radius:6px}
+.adminBtn{background:#007bff}
+.orderInfo{background:white;padding:10px;margin:10px 0}
+.tabs{display:flex;background:white;margin-bottom:10px}
+.tab{flex:1;padding:12px;text-align:center}
+.tab.active{background:#ff6b35;color:white}
+.soup{background:white;padding:10px;margin-bottom:10px}
+.soupWrap{display:flex;gap:8px;margin-top:8px}
+.soupBtn{flex:1;padding:8px;background:#eee;border:none;border-radius:6px}
+.soupBtn.active{background:#ff6b35;color:white}
+.list{padding:10px}
+.item{background:white;padding:12px;display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;border-radius:8px}
+.ctrl{display:flex;gap:8px;align-items:center}
+.ctrl button{width:30px;height:30px;background:#ff6b35;color:white;border:none;border-radius:4px}
+.bottom{position:fixed;bottom:0;left:0;width:100%;background:white;display:flex;justify-content:space-between;padding:15px}
+#total{font-size:18px;font-weight:bold;color:#e53935}
+.payBtn{padding:12px 20px;background:#ff6b35;color:white;border:none;border-radius:8px}
+.mask{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);display:none;justify-content:center;align-items:center}
+.pop{background:white;width:90%;max-width:350px;padding:20px;border-radius:12px;text-align:center}
+.pop img{width:160px;margin:10px auto}
+.popBtn{width:100%;padding:12px;margin-top:8px;border:none;border-radius:8px;background:#ff6b35;color:white}
+.gray{background:#666}
+.blue{background:#007bff}
+.adminPage{position:fixed;top:0;left:0;width:100%;height:100%;background:white;overflow-y:auto;padding:15px;display:none}
+.stats{display:flex;gap:10px;margin-bottom:15px}
+.stat{flex:1;background:#fff3e0;padding:12px;border-radius:8px;text-align:center}
+.stat b{font-size:16px;color:#e53935}
+.orderItem{background:#f9f9f9;padding:12px;margin-bottom:8px;border-radius:8px}
+.paidBtn{padding:6px 10px;background:#ff6b35;color:white;border:none;border-radius:4px;margin-top:6px}
+.paid{background:#007bff}
+.pwdBox{background:white;padding:30px;border-radius:16px;text-align:center}
+.pwdInput{width:100%;padding:10px;margin:10px 0;border:1px solid #ddd;border-radius:8px}
+[data-th]{display:none}
+body.th [data-zh]{display:none}
+body.th [data-th]{display:inline}
+</style>
+</head>
+
+<body>
+
+<div class="head">
+  <button class="langBtn" onclick="toggleLang()">中 / ไทย</button>
+  <button class="adminBtn" onclick="openPwd()">แอดมิน</button>
+</div>
+
+<div class="orderInfo">
+  <div data-zh>订单号：<span id="orderNo"></span></div>
+  <div data-th>รหัสออร์เดอร์：<span id="orderNo"></span></div>
+  <div style="margin-top:6px">
+    <span data-zh>桌号/地址：</span>
+    <span data-th>โต๊ะ/ที่อยู่：</span>
+    <input id="table" placeholder="ไม่ระบุ" style="padding:6px;width:100%">
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="setTab('关东煮')" data-zh>关东煮</div>
+  <div class="tab" onclick="setTab('蔬菜')" data-zh>蔬菜</div>
+  <div class="tab" onclick="setTab('饮品')" data-zh>饮品</div>
+  <div class="tab active" onclick="setTab('关东煮')" data-th>โตเกียวโอเด้ง</div>
+  <div class="tab" onclick="setTab('蔬菜')" data-th>ผัก</div>
+  <div class="tab" onclick="setTab('饮品')" data-th>เครื่องดื่ม</div>
+</div>
+
+<div class="soup">
+  <div data-zh>选择汤底（必选）</div>
+  <div data-th>เลือกซุป (จำเป็น)</div>
+  <div class="soupWrap">
+    <button class="soupBtn" onclick="setSoup(0)" data-zh>清汤</button>
+    <button class="soupBtn" onclick="setSoup(1)" data-zh>酱油</button>
+    <button class="soupBtn" onclick="setSoup(2)" data-zh>麻辣</button>
+    <button class="soupBtn" onclick="setSoup(0)" data-th>ซุปใส</button>
+    <button class="soupBtn" onclick="setSoup(1)" data-th>โชยุ</button>
+    <button class="soupBtn" onclick="setSoup(2)" data-th>มัสลา</button>
+  </div>
+</div>
+
+<div id="list" class="list"></div>
+
+<div class="bottom">
+  <div data-zh>总计：<span id="total">0</span> ฿</div>
+  <div data-th>รวมทั้งหมด：<span id="total">0</span> ฿</div>
+  <button class="payBtn" onclick="openPay()" data-zh>去付款</button>
+  <button class="payBtn" onclick="openPay()" data-th>ชำระเงิน</button>
+</div>
+
+<!-- 支付弹窗 -->
+<div class="mask" id="payMask">
+  <div class="pop">
+    <h3 data-zh>确认支付</h3><h3 data-th>ยืนยันชำระเงิน</h3>
+    <p data-zh>金额：<span id="payTotal">0</span> ฿</p>
+    <p data-th>จำนวน：<span id="payTotal">0</span> ฿</p>
+    <img id="qrImg" src="https://promptpay.io/0923969867.png" style="width:160px">
+    <button class="popBtn blue" onclick="downloadQR()" data-zh>下载二维码</button>
+    <button class="popBtn blue" onclick="downloadQR()" data-th>ดาวน์โหลด QR</button>
+    <button class="popBtn" onclick="confirmOrder()" data-zh>已完成支付</button>
+    <button class="popBtn" onclick="confirmOrder()" data-th>ชำระเงินแล้ว</button>
+    <button class="popBtn gray" onclick="closePay()" data-zh>取消</button>
+    <button class="popBtn gray" onclick="closePay()" data-th>ยกเลิก</button>
+  </div>
+</div>
+
+<!-- 成功弹窗 -->
+<div class="mask" id="okMask">
+  <div class="pop">
+    <h2 data-zh>下单成功</h2><h2 data-th>สั่งซื้อสำเร็จ</h2>
+    <div id="okOrderNo" style="font-size:18px;margin:10px 0"></div>
+    <p data-zh>请截图取餐</p><p data-th>กรุณาถ่ายภาพรหัสนี้</p>
+    <button class="popBtn" onclick="closeOk()">OK</button>
+  </div>
+</div>
+
+<!-- 密码弹窗 -->
+<div class="mask" id="pwdMask">
+  <div class="pwdBox">
+    <h3 data-zh>商家登录</h3><h3 data-th>เข้าสู่ระบบ</h3>
+    <input type="password" id="pwd" class="pwdInput" placeholder="Password">
+    <button class="popBtn" onclick="loginAdmin()" data-zh>登录</button>
+    <button class="popBtn gray" onclick="closePwd()" data-zh>取消</button>
+  </div>
+</div>
+
+<!-- 商家后台 -->
+<div class="adminPage" id="adminPage">
+  <h3 data-zh>商家后台</h3><h3 data-th>แดชบอร์ด</h3>
+  <div class="stats">
+    <div class="stat"><div data-zh>今日订单</div><div data-th>ออร์เดอร์วันนี้</div><b id="todayOrder">0</b></div>
+    <div class="stat"><div data-zh>今日营收</div><div data-th>รายรับวันนี้</div><b id="todayMoney">0</b> ฿</div>
+    <div class="stat"><div data-zh>总订单</div><div data-th>ออร์เดอร์ทั้งหมด</div><b id="totalOrder">0</b></div>
+  </div>
+  <button onclick="refreshAdmin()" class="paidBtn" data-zh>刷新订单</button>
+  <button onclick="closeAdmin()" class="paidBtn gray" style="margin-left:8px" data-zh>关闭</button>
+  <div id="orderList" style="margin-top:15px"></div>
+</div>
+
+<script>
+// ==============================================
+// ✅ 在这里粘贴你的 Google 表格链接
+const SHEET_URL = "https://docs.google.com/spreadsheets/d/1Gr91A7-Y2DDgK2zRDlkmUGDR3sG7vF8HMwLOPMZX5NY/edit?usp=sharing";
+// ==============================================
+
+const ADMIN_PASSWORD = "510303";
+const foods = [
+  {type:"关东煮",name:"萝卜",th:"รากผักไชเท้า",price:10},
+  {type:"关东煮",name:"鸡蛋",th:"ไข่",price:10},
+  {type:"关东煮",name:"海带结",th:"สาหร่าย",price:10},
+  {type:"关东煮",name:"鱼豆腐",th:"เต้าหู้ปลา",price:10},
+  {type:"关东煮",name:"鱼丸",th:"ลูกชิ้นปลา",price:10},
+  {type:"关东煮",name:"牛肉丸",th:"ลูกชิ้นเนื้อ",price:10},
+  {type:"关东煮",name:"贡丸",th:"ลูกชิ้นหมู",price:10},
+  {type:"关东煮",name:"豆腐泡",th:"เต้าหู้ทอด",price:10},
+  {type:"关东煮",name:"魔芋丝",th:"วุ้นเส้น",price:10},
+  {type:"关东煮",name:"年糕",th:"ข้าวเหนียวปิ้ง",price:10},
+  {type:"关东煮",name:"蟹棒",th:"ลูกชิ้นปู",price:10},
+  {type:"关东煮",name:"香肠",th:"ไส้กรอก",price:10},
+  {type:"关东煮",name:"香菇",th:"เห็ดหอม",price:10},
+  {type:"关东煮",name:"金针菇",th:"เห็ดเข็มทอง",price:10},
+  {type:"关东煮",name:"玉米",th:"ข้าวโพด",price:10},
+  {type:"关东煮",name:"土豆",th:"มันฝรั่ง",price:10},
+  {type:"蔬菜",name:"白菜",th:"ผักกะหล่ำ",price:10},
+  {type:"蔬菜",name:"生菜",th:"ผักสลัด",price:10},
+  {type:"饮品",name:"水",th:"น้ำเปล่า",price:10},
+  {type:"饮品",name:"可乐",th:"โค้ก",price:10},
+  {type:"饮品",name:"奶茶",th:"ชาไข่มุก",price:10}
+];
+
+let tab = "关东煮";
+let cart = {};
+let soup = -1;
+
+function toggleLang(){document.body.classList.toggle("th")}
+function generateNo(){return "OD"+Math.floor(100000+Math.random()*900000);}
+function renderList(){/* 自动渲染菜单 */
+  let html="";
+  foods.filter(f=>f.type==tab).forEach(f=>{
+    let n=cart[f.name]||0;
+    html+=`<div class="item">
+      <div><div data-zh>${f.name}</div><div data-th>${f.th}</div><div>${f.price} ฿</div></div>
+      <div class="ctrl"><button onclick="add('${f.name}',-1)">-</button><span>${n}</span><button onclick="add('${f.name}',1)">+</button></div>
+    </div>`;
+  });
+  document.getElementById("list").innerHTML=html;
+  calcTotal();
+}
+function add(name,num){cart[name]=(cart[name]||0)+num;if(cart[name]<0)cart[name]=0;renderList();}
+function calcTotal(){let t=0;for(let n in cart){let f=foods.find(x=>x.name==n);if(f)t+=cart[n]*f.price;}document.getElementById("total").innerText=t;}
+function setTab(t){tab=t;renderList();}
+function setSoup(i){soup=i;document.querySelectorAll(".soupBtn").forEach((e,j)=>e.classList.toggle("active",j==i));}
+function openPay(){if(soup==-1){alert("กรุณาเลือกซุป / 请选汤底");return;}let t=document.getElementById("total").innerText*1;if(t==0){alert("กรุณาเลือกเมนู / 请选菜品");return;}document.getElementById("payTotal").innerText=t;document.getElementById("payMask").style.display="flex";}
+function closePay(){document.getElementById("payMask").style.display="none";}
+function downloadQR(){let a=document.createElement("a");a.href=document.getElementById("qrImg").src;a.download="PromptPay.png";a.click();}
+
+async function confirmOrder(){
+  closePay();
+  let no=generateNo();
+  let total=document.getElementById("total").innerText*1;
+  let table=document.getElementById("table").value||"-";
+  let items=[];
+  for(let n in cart){if(cart[n]>0){let f=foods.find(x=>x.name==n);let s=document.body.classList.contains("th")?f.th:f.name;items.push(s+"×"+cart[n]);}}
+  let soups=document.body.classList.contains("th")?["ซุปใส","โชยุ","มัสลา"]:["清汤","酱油","麻辣"];
+  let time=new Date().toLocaleString();
+  let date=new Date().toLocaleDateString();
+
+  await fetch(SHEET_URL.replace("/edit","/gviz/tq?tqx=out:csv&tq="+encodeURIComponent(`INSERT INTO A,B,C,D,E,F,G,H VALUES ('${no}','${table}','${total}','${items.join(" ")}','${soups[soup]}','${time}','${date}','false')`)));
+
+  document.getElementById("okOrderNo").innerText=no;
+  document.getElementById("okMask").style.display="flex";
+  cart={};soup=-1;document.querySelectorAll(".soupBtn").forEach(e=>e.classList.remove("active"));
+  document.getElementById("table").value="";renderList();
+}
+
+function closeOk(){document.getElementById("okMask").style.display="none";}
+function openPwd(){document.getElementById("pwdMask").style.display="flex";}
+function closePwd(){document.getElementById("pwdMask").style.display="none";}
+function loginAdmin(){if(document.getElementById("pwd").value==ADMIN_PASSWORD){closePwd();openAdmin();}else{alert("รหัสผิด / 密码错误");}}
+
+async function refreshAdmin(){
+  let res=await fetch(SHEET_URL.replace("/edit","/gviz/tq?tqx=out:csv"));
+  let text=await res.text();
+  let rows=text.split("\n").slice(1).filter(r=>r.trim());
+  let today=new Date().toLocaleDateString();
+  let todaySum=0;let todayCount=0;
+  rows.forEach(r=>{let d=r.split(",")[6];if(d==today)todayCount++,todaySum+=r.split(",")[2]*1;});
+  document.getElementById("todayOrder").innerText=todayCount;
+  document.getElementById("todayMoney").innerText=todaySum;
+  document.getElementById("totalOrder").innerText=rows.length;
+  let html="";
+  rows.forEach(r=>{
+    let a=r.split(",");
+    html+=`<div class="orderItem"><strong>${a[0]}</strong><br>${a[1]} | ${a[4]}<br>${a[3]}<br>${a[2]} ฿ | ${a[5]}</div>`;
+  });
+  document.getElementById("orderList").innerHTML=html;
+}
+
+function openAdmin(){document.getElementById("adminPage").style.display="block";refreshAdmin();}
+function closeAdmin(){document.getElementById("adminPage").style.display="none";}
+
+renderList();
+</script>
+</body>
+</html>
