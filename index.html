@@ -64,12 +64,12 @@ body.th [data-th]{display:inline}
 </div>
 
 <div class="tabs">
-  <div class="tab active" onclick="setTab('关东煮')" data-zh>关东煮</div>
-  <div class="tab" onclick="setTab('蔬菜')" data-zh>蔬菜</div>
-  <div class="tab" onclick="setTab('饮品')" data-zh>饮品</div>
-  <div class="tab active" onclick="setTab('关东煮')" data-th>โตเกียวโอเด้ง</div>
-  <div class="tab" onclick="setTab('蔬菜')" data-th>ผัก</div>
-  <div class="tab" onclick="setTab('饮品')" data-th>เครื่องดื่ม</div>
+  <div class="tab active" data-zh>关东煮</div>
+  <div class="tab" data-zh>蔬菜</div>
+  <div class="tab" data-zh>饮品</div>
+  <div class="tab active" data-th>โตเกียวโอเด้ง</div>
+  <div class="tab" data-th>ผัก</div>
+  <div class="tab" data-th>เครื่องดื่ม</div>
 </div>
 
 <div class="soup">
@@ -94,7 +94,6 @@ body.th [data-th]{display:inline}
   <button class="payBtn" onclick="openPay()" data-th>ชำระเงิน</button>
 </div>
 
-<!-- 支付弹窗 -->
 <div class="mask" id="payMask">
   <div class="pop">
     <h3 data-zh>确认支付</h3><h3 data-th>ยืนยันชำระเงิน</h3>
@@ -110,7 +109,6 @@ body.th [data-th]{display:inline}
   </div>
 </div>
 
-<!-- 成功弹窗 -->
 <div class="mask" id="okMask">
   <div class="pop">
     <h2 data-zh>下单成功</h2><h2 data-th>สั่งซื้อสำเร็จ</h2>
@@ -120,7 +118,6 @@ body.th [data-th]{display:inline}
   </div>
 </div>
 
-<!-- 密码弹窗 -->
 <div class="mask" id="pwdMask">
   <div class="pwdBox">
     <h3 data-zh>商家登录</h3><h3 data-th>เข้าสู่ระบบ</h3>
@@ -130,7 +127,6 @@ body.th [data-th]{display:inline}
   </div>
 </div>
 
-<!-- 商家后台 -->
 <div class="adminPage" id="adminPage">
   <h3 data-zh>商家后台</h3><h3 data-th>แดชบอร์ด</h3>
   <div class="stats">
@@ -173,8 +169,21 @@ let tab = "关东煮";
 let cart = {};
 let soup = -1;
 
+// 标签切换（修复高亮）
+document.querySelectorAll('.tab').forEach(tabEl => {
+  tabEl.onclick = () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    tabEl.classList.add('active');
+    const text = tabEl.innerText.trim();
+    if (text.includes("关东煮") || text.includes("โตเกียวโอเด้ง")) setTab("关东煮");
+    else if (text.includes("蔬菜") || text.includes("ผัก")) setTab("蔬菜");
+    else if (text.includes("饮品") || text.includes("เครื่องดื่ม")) setTab("饮品");
+  };
+});
+
 function toggleLang(){document.body.classList.toggle("th")}
 function generateNo(){return "OD"+Math.floor(100000+Math.random()*900000);}
+
 function renderList(){
   let html="";
   foods.filter(f=>f.type==tab).forEach(f=>{
@@ -187,6 +196,7 @@ function renderList(){
   document.getElementById("list").innerHTML=html;
   calcTotal();
 }
+
 function add(name,num){cart[name]=(cart[name]||0)+num;if(cart[name]<0)cart[name]=0;renderList();}
 function calcTotal(){let t=0;for(let n in cart){let f=foods.find(x=>x.name==n);if(f)t+=cart[n]*f.price;}document.getElementById("total").innerText=t;}
 function setTab(t){tab=t;renderList();}
@@ -195,7 +205,8 @@ function openPay(){if(soup==-1){alert("กรุณาเลือกซุป /
 function closePay(){document.getElementById("payMask").style.display="none";}
 function downloadQR(){let a=document.createElement("a");a.href=document.getElementById("qrImg").src;a.download="PromptPay.png";a.click();}
 
-function confirmOrder(){
+// 上传云端
+async function confirmOrder(){
   closePay();
   let no=generateNo();
   let total=document.getElementById("total").innerText*1;
@@ -205,6 +216,14 @@ function confirmOrder(){
   let soups=document.body.classList.contains("th")?["ซุปใส","โชยุ","มัสลา"]:["清汤","酱油","麻辣"];
   let time=new Date().toLocaleString();
   let date=new Date().toLocaleDateString();
+
+  // 云端上传（你手机能看到）
+  try {
+    await fetch("https://script.google.com/macros/s/AKfycbz9XlExfUgKdFwj2E2z3E0lEOAqzJqzQz0eY7lqzZxGY5G5G5G/exec", {
+      method: "POST",
+      body: JSON.stringify({ no, table, soup: soups[soup], items: items.join(" "), total, time })
+    });
+  } catch(e){}
 
   let orders=JSON.parse(localStorage.getItem("orders")||"[]");
   orders.unshift({no,table,total,items:items.join(" "),soup:soups[soup],time,date,paid:false});
@@ -240,13 +259,19 @@ function refreshAdmin(){
   });
   document.getElementById("orderList").innerHTML=html;
 }
+
 function togglePaid(i){
   let orders=JSON.parse(localStorage.getItem("orders")||"[]");
   orders[i].paid=!orders[i].paid;
   localStorage.setItem("orders",JSON.stringify(orders));
   refreshAdmin();
 }
-function openAdmin(){document.getElementById("adminPage").style.display="block";refreshAdmin();}
+
+function openAdmin(){
+  document.getElementById("adminPage").style.display="block";
+  refreshAdmin();
+  setInterval(refreshAdmin, 5000);
+}
 function closeAdmin(){document.getElementById("adminPage").style.display="none";}
 
 renderList();
